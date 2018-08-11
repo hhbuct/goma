@@ -1,0 +1,9 @@
+{
+  "name": "goma",
+  "version": "1.0.0",
+  "author": "hhbuct <hhbuct@gmail.com>",
+  "private": true,
+  "scripts": {
+    "postinstall": "npm install express"
+  }
+}
