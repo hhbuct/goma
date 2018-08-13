@@ -8,131 +8,218 @@
         <i class="iconfont icon-way"></i>
         <span>在线播放</span>
       </div>
-      <ul class="item-live-parts-indicator" ref="partsIndicator" v-if="isPartsIndicatorShow">
-        <li v-for="(item,index) in indicatorCount" :key="index" @click="onIndicatorClick($event,index)">
+      <ul class="item-parts-indicator" ref="livePartsIndicator" v-if="isPartsIndicatorShow">
+        <li v-for="(item,index) in indicatorCount" :key="index" @click="onLiveIndicatorClick($event,index)">
           {{index*40+1 === Math.min(episodesCount,item*40)?index*40+1:index*40+1+'-'+Math.min(episodesCount,item*40)}}
         </li>
       </ul>
-      <ul class="item-live-parts" v-if="!isSinglePart" :class="{'item-live-parts-wrap':isPartsIndicatorShow}">
-        <li v-for="(i) in resourcePartShowArray" :key="i" class="item-part">{{i}}</li>
-        <li v-for="(j) in noResourcePartShowArray" :key="j" class="item-part no-live-resource">{{j}}</li>
+      <ul class="item-parts" v-if="!isSinglePart" :class="{'item-parts-wrap':isPartsIndicatorShow}">
+        <li v-for="(i) in liveResourcePartShowArray" :key="i" class="item-part">{{i}}</li>
+        <li v-for="(j) in noLiveResourcePartShowArray" :key="j" class="item-part no-live-resource">{{j}}</li>
       </ul>
-      <ul class="item-live-parts" v-if="isSinglePart">
+      <ul class="item-parts" v-if="isSinglePart">
         <li class="item-part single-part">{{name}}</li>
       </ul>
     </div>
     <div class="item-download">
-      <div class="item-header">
+      <div class="item-header" :class="{'item-header-only-table':!isDownloadIndicatorShow}">
         <i class="iconfont icon-way"></i>
         <span>资源下载</span>
       </div>
-      <ul class="download-indicator">
+      <ul class="download-indicator" v-if="isDownloadIndicatorShow">
         <li class="collection-indicator" :class="{'active':isCollectionActive}" @click="onDownloadCollectionClick">
           <span>全&nbsp;集</span></li>
         <li class="separation-indicator" :class="{'active':!isCollectionActive}" @click="onDownloadSeparationClick">
           <span>分&nbsp;集</span></li>
       </ul>
       <div class="download-area collection-area" v-if="isCollectionActive">
-        <table>
-          <tr class="header-row">
-            <th class="header-row-name">资源名称</th>
-            <th>语言</th>
-            <th>字幕</th>
-            <th>更新时间</th>
-            <th>电影大小</th>
-            <th class="header-row-download">下载</th>
-          </tr>
-          <tr class="item-row" v-for="(item,index) in collectionDownloadData" :key="index">
-            <td class="item-row-name">{{item.name}}</td>
-            <td>{{item.language}}</td>
-            <td>{{item.subtitle}}</td>
-            <td>{{item.updateTime}}</td>
-            <td>{{item.resourceSize}}</td>
-            <td class="item-row-links">
-              <a class="btn-download" target="_blank" :href=item.magnetLink>
-                <i class="iconfont icon-magnet"></i>磁力链接
-              </a>
-              <a :id="'btn-download'+index" v-if="item.baiduNetDisk" class="btn-download"
-                 @click="onBaiduNetDiskBtnClick(item.baiduNetDisk,index)"
-                 :data-clipboard-text="item.baiduNetDisk.baiduNetDiskCode">
-                <i class="iconfont icon-baiduyun"></i>百度云盘
-              </a>
-            </td>
-          </tr>
-        </table>
+        <download-table :download-data="collectionDownloadData"></download-table>
       </div>
       <div class="download-area separation-area" v-if="!isCollectionActive">
+        <ul class="item-parts-indicator" ref="downloadPartsIndicator" v-if="isPartsIndicatorShow">
+          <li v-for="(item,index) in indicatorCount" :key="index" @click="onDownloadIndicatorClick($event,index)">
+            {{index*40+1 === Math.min(episodesCount,item*40)?index*40+1:index*40+1+'-'+Math.min(episodesCount,item*40)}}
+          </li>
+        </ul>
+        <ul class="item-parts" v-if="!isSinglePart" :class="{'item-parts-wrap':isPartsIndicatorShow}">
+          <li v-for="(i) in downloadResourcePartShowArray" :key="i" class="item-part"
+              @click="onDownloadItemPartClick(i)">{{i}}
+          </li>
+          <li v-for="(j) in noDownloadResourcePartShowArray" :key="j" class="item-part no-live-resource">{{j}}</li>
+        </ul>
+        <ul class="item-parts" v-if="isSinglePart">
+          <li class="item-part single-part">{{name}}</li>
+        </ul>
       </div>
     </div>
-    <modal name="baiduNetDiskModal" @before-open="beforeBaiduNetDiskModalOpen" :width="440" :height="192">
-      <div class="pop-main">
-        <div class="success-tip-box">
-          <span class="success-tip"><i
-            class="iconfont icon-right"></i><i>提取码&nbsp;"{{baiduNetDiskModalCode}}"&nbsp;<i
-            v-if="baiduNetDiskModalState">已复制</i></i></span>
-          <a class="go-btn" :href=baiduNetDiskModalUrl target="_blank">前往下载页面</a>
-        </div>
-        <div class="support">
-          推荐：<a href="#" target="_blank">百度云文件提速下载方法</a>
-        </div>
-      </div>
-    </modal>
   </div>
 </template>
 
 <script>
 import { range } from '../../../common/utils'
-import Clipboard from 'clipboard'
+import ItemDownloadModal from '../../../components/movieDetail/ItemDownloadModal'
+import DownloadTable from '../../../components/movieDetail/DownloadTable'
 
 export default {
   name: 'ItemDownloadResource',
+  components: {DownloadTable},
   data () {
     return {
       name: '小偷家族',
-      episodesCount: 49,
-      resourceEpisodesCount: 40,
-      resourcePartShowArray: [],
-      noResourcePartShowArray: [],
+      episodesCount: 66,
+      resourceEpisodesCount: 1,
+      liveResourcePartShowArray: [],
+      noLiveResourcePartShowArray: [],
+      downloadResourcePartShowArray: [],
+      noDownloadResourcePartShowArray: [],
       downloadActiveIndex: 0,
       collectionDownloadData: [
         {
           name: '肖申克的救赎',
           language: '英语',
           subtitle: '中文',
+          subtitleOutside: '',
           resourceSize: '2.76GB',
+          remark: '720P',
           updateTime: '2018-04-11',
           magnetLink: 'magnet:?xt=urn:btih:97afde09118429ad6eeae4eb6f0d4b7e255d2721&amp;dn=Ф��˵ľ���.1994.��Ӣ��Ļ.��Ӣ˫���ʥ�Ǿ��޿�'
         },
         {
-          name: '肖申克的救赎.The.Shawshank.Redemption.1994.BD...',
+          name: '肖申克的救赎.The.Shawshank.Redemption.肖申克的救赎.The.Shawshank.Redemption.1994.BD...',
           language: '英语',
           subtitle: '中英',
+          subtitleOutside: '',
           resourceSize: '4.216GB',
+          remark: '[蓝光] [720p] [字幕] [1024p] [高清]',
           updateTime: '2018-04-11',
           magnetLink: 'magnet:?xt=urn:btih:97afde09118429ad6eeae4eb6f0d4b7e255d2721&amp;dn=Ф��˵ľ���.1994.��Ӣ��Ļ.��Ӣ˫���ʥ�Ǿ��޿�',
           baiduNetDisk: {
             baiduNetDiskLink: 'https://pan.baidu.com/s/1Pv76AJzjd-lV7yKJE-6yuQ',
             baiduNetDiskCode: 'xbbq'
           }
+        },
+        {
+          name: '肖申克的救赎',
+          language: '英语',
+          subtitle: '中文',
+          subtitleOutside: 'http://www.baidu.com',
+          resourceSize: '2.76GB',
+          remark: '720P',
+          updateTime: '2018-04-11',
+          magnetLink: 'magnet:?xt=urn:btih:97afde09118429ad6eeae4eb6f0d4b7e255d2721&amp;dn=Ф��˵ľ���.1994.��Ӣ��Ļ.��Ӣ˫���ʥ�Ǿ��޿�',
+          baiduNetDisk: {
+            baiduNetDiskLink: 'https://pan.baidu.com/s/1Pv76AJzjd-lV7yKJE-6yuQ',
+            baiduNetDiskCode: 'jqja'
+          }
+        },
+        {
+          name: '肖申克的救赎',
+          language: '英语',
+          subtitle: '中文',
+          subtitleOutside: 'http://www.baidu.com',
+          resourceSize: '2.76GB',
+          remark: '720P',
+          updateTime: '2018-04-11',
+          magnetLink: 'magnet:?xt=urn:btih:97afde09118429ad6eeae4eb6f0d4b7e255d2721&amp;dn=Ф��˵ľ���.1994.��Ӣ��Ļ.��Ӣ˫���ʥ�Ǿ��޿�',
+          baiduNetDisk: {
+            baiduNetDiskLink: 'https://pan.baidu.com/s/1Pv76AJzjd-lV7yKJE-6yuQ',
+            baiduNetDiskCode: 'jqja'
+          }
+        },
+        {
+          name: '肖申克的救赎',
+          language: '英语',
+          subtitle: '中文',
+          subtitleOutside: 'http://www.baidu.com',
+          resourceSize: '2.76GB',
+          remark: '720P',
+          updateTime: '2018-04-11',
+          magnetLink: 'magnet:?xt=urn:btih:97afde09118429ad6eeae4eb6f0d4b7e255d2721&amp;dn=Ф��˵ľ���.1994.��Ӣ��Ļ.��Ӣ˫���ʥ�Ǿ��޿�',
+          baiduNetDisk: {
+            baiduNetDiskLink: 'https://pan.baidu.com/s/1Pv76AJzjd-lV7yKJE-6yuQ',
+            baiduNetDiskCode: 'jqja'
+          }
+        },
+        {
+          name: '肖申克的救赎',
+          language: '英语',
+          subtitle: '中文',
+          subtitleOutside: 'http://www.baidu.com',
+          resourceSize: '2.76GB',
+          remark: '720P',
+          updateTime: '2018-04-11',
+          magnetLink: 'magnet:?xt=urn:btih:97afde09118429ad6eeae4eb6f0d4b7e255d2721&amp;dn=Ф��˵ľ���.1994.��Ӣ��Ļ.��Ӣ˫���ʥ�Ǿ��޿�',
+          baiduNetDisk: {
+            baiduNetDiskLink: 'https://pan.baidu.com/s/1Pv76AJzjd-lV7yKJE-6yuQ',
+            baiduNetDiskCode: 'jqja'
+          }
+        },
+        {
+          name: '肖申克的救赎',
+          language: '英语',
+          subtitle: '中文',
+          subtitleOutside: 'http://www.baidu.com',
+          resourceSize: '2.76GB',
+          remark: '720P',
+          updateTime: '2018-04-11',
+          magnetLink: 'magnet:?xt=urn:btih:97afde09118429ad6eeae4eb6f0d4b7e255d2721&amp;dn=Ф��˵ľ���.1994.��Ӣ��Ļ.��Ӣ˫���ʥ�Ǿ��޿�',
+          baiduNetDisk: {
+            baiduNetDiskLink: 'https://pan.baidu.com/s/1Pv76AJzjd-lV7yKJE-6yuQ',
+            baiduNetDiskCode: 'jqja'
+          }
+        },
+        {
+          name: '肖申克的救赎',
+          language: '英语',
+          subtitle: '中文',
+          subtitleOutside: 'http://www.baidu.com',
+          resourceSize: '2.76GB',
+          remark: '720P',
+          updateTime: '2018-04-11',
+          magnetLink: 'magnet:?xt=urn:btih:97afde09118429ad6eeae4eb6f0d4b7e255d2721&amp;dn=Ф��˵ľ���.1994.��Ӣ��Ļ.��Ӣ˫���ʥ�Ǿ��޿�',
+          baiduNetDisk: {
+            baiduNetDiskLink: 'https://pan.baidu.com/s/1Pv76AJzjd-lV7yKJE-6yuQ',
+            baiduNetDiskCode: 'jqja'
+          }
+        },
+        {
+          name: '肖申克的救赎',
+          language: '英语',
+          subtitle: '中文',
+          subtitleOutside: 'http://www.baidu.com',
+          resourceSize: '2.76GB',
+          remark: '720P',
+          updateTime: '2018-04-11',
+          magnetLink: 'magnet:?xt=urn:btih:97afde09118429ad6eeae4eb6f0d4b7e255d2721&amp;dn=Ф��˵ľ���.1994.��Ӣ��Ļ.��Ӣ˫���ʥ�Ǿ��޿�',
+          baiduNetDisk: {
+            baiduNetDiskLink: 'https://pan.baidu.com/s/1Pv76AJzjd-lV7yKJE-6yuQ',
+            baiduNetDiskCode: 'jqja'
+          }
         }
-      ],
-      baiduNetDiskModalState: false,
-      baiduNetDiskModalUrl: '',
-      baiduNetDiskModalCode: ''
+      ]
     }
   },
   methods: {
-    partsIndicatorInit () {
-      if (this.$refs.partsIndicator) {
-        this.$refs.partsIndicator.firstChild.classList.add('active')
+    livePartsIndicatorInit () {
+      if (this.$refs.livePartsIndicator) {
+        this.$refs.livePartsIndicator.firstChild.classList.add('active')
       }
     },
     livePartShowArrayInit () {
-      this.resourcePartShowArray = range(1, Math.min(41, this.resourceEpisodesCount + 1))
-      this.noResourcePartShowArray = range(this.resourceEpisodesCount + 1, Math.min(this.episodesCount + 1, 41))
-      console.log(this.noResourcePartShowArray)
+      this.liveResourcePartShowArray = range(1, Math.min(41, this.resourceEpisodesCount + 1))
+      this.noLiveResourcePartShowArray = range(this.resourceEpisodesCount + 1, Math.min(this.episodesCount + 1, 41))
     },
-    onIndicatorClick (e, index) {
+    downloadPartsIndicatorInit () {
+      console.log(this.$refs.downloadPartsIndicator)
+      if (this.$refs.downloadPartsIndicator) {
+        this.$refs.downloadPartsIndicator.firstChild.classList.add('active')
+      }
+    },
+    downloadPartShowArrayInit () {
+      this.downloadResourcePartShowArray = range(1, Math.min(41, this.resourceEpisodesCount + 1))
+      this.noDownloadResourcePartShowArray = range(this.resourceEpisodesCount + 1, Math.min(this.episodesCount + 1, 41))
+    },
+    onLiveIndicatorClick (e, index) {
       let count = Math.ceil(this.episodesCount / 40)
       for (let i = 0; i < count; i++) {
         if (i === index) {
@@ -147,25 +234,25 @@ export default {
           tempArray.push(parseInt(i.replace(/\s+/g, '')))
         })
         if (this.resourceEpisodesCount > tempArray[1]) {
-          this.resourcePartShowArray = range(tempArray[0], tempArray[1] + 1)
-          this.noResourcePartShowArray = []
+          this.liveResourcePartShowArray = range(tempArray[0], tempArray[1] + 1)
+          this.noLiveResourcePartShowArray = []
         }
         if (this.resourceEpisodesCount >= tempArray[0] && this.resourceEpisodesCount <= tempArray[1]) {
-          this.resourcePartShowArray = range(tempArray[0], this.resourceEpisodesCount + 1)
-          this.noResourcePartShowArray = range(this.resourceEpisodesCount + 1, tempArray[1] + 1)
+          this.liveResourcePartShowArray = range(tempArray[0], this.resourceEpisodesCount + 1)
+          this.noLiveResourcePartShowArray = range(this.resourceEpisodesCount + 1, tempArray[1] + 1)
         }
         if (this.resourceEpisodesCount < tempArray[0]) {
-          this.resourcePartShowArray = []
-          this.noResourcePartShowArray = range(tempArray[0], tempArray[1] + 1)
+          this.liveResourcePartShowArray = []
+          this.noLiveResourcePartShowArray = range(tempArray[0], tempArray[1] + 1)
         }
       } else {
         let temp = parseInt(e.target.innerHTML)
         if (this.resourceEpisodesCount === temp) {
-          this.resourcePartShowArray = [temp]
-          this.noResourcePartShowArray = []
+          this.liveResourcePartShowArray = [temp]
+          this.noLiveResourcePartShowArray = []
         } else {
-          this.resourcePartShowArray = []
-          this.noResourcePartShowArray = [temp]
+          this.liveResourcePartShowArray = []
+          this.noLiveResourcePartShowArray = [temp]
         }
       }
     },
@@ -174,27 +261,55 @@ export default {
     },
     onDownloadSeparationClick () {
       this.downloadActiveIndex = 1
-    },
-    onBaiduNetDiskBtnClick (baiduNetDiskItem, index) {
-      let nodeId = '#btn-download' + index
-      let clipboard = new Clipboard(nodeId)
-      clipboard.on('success', () => {
-        let baiduNetDiskModalItem = {}
-        baiduNetDiskModalItem.state = 'success'
-        baiduNetDiskModalItem.item = baiduNetDiskItem
-        this.$modal.show('baiduNetDiskModal', baiduNetDiskModalItem)
-      })
-      clipboard.on('error', () => {
-        let baiduNetDiskModalItem = {}
-        baiduNetDiskModalItem.state = 'error'
-        baiduNetDiskModalItem.item = baiduNetDiskItem
-        this.$modal.show('baiduNetDiskModal', baiduNetDiskModalItem)
+      this.$nextTick(() => {
+        this.downloadPartsIndicatorInit()
+        this.downloadPartShowArrayInit()
       })
     },
-    beforeBaiduNetDiskModalOpen (e) {
-      e.params.state === 'success' ? this.baiduNetDiskModalState = true : this.baiduNetDiskModalState = false
-      this.baiduNetDiskModalUrl = e.params.item.baiduNetDiskLink
-      this.baiduNetDiskModalCode = e.params.item.baiduNetDiskCode
+    onDownloadIndicatorClick (e, index) {
+      let count = Math.ceil(this.episodesCount / 40)
+      for (let i = 0; i < count; i++) {
+        if (i === index) {
+          e.target.parentNode.children[i].classList.add('active')
+        } else {
+          e.target.parentNode.children[i].classList.remove('active')
+        }
+      }
+      if (e.target.innerHTML.includes('-')) {
+        let tempArray = []
+        e.target.innerHTML.split('-').forEach(i => {
+          tempArray.push(parseInt(i.replace(/\s+/g, '')))
+        })
+        if (this.resourceEpisodesCount > tempArray[1]) {
+          this.downloadResourcePartShowArray = range(tempArray[0], tempArray[1] + 1)
+          this.noDownloadResourcePartShowArray = []
+        }
+        if (this.resourceEpisodesCount >= tempArray[0] && this.resourceEpisodesCount <= tempArray[1]) {
+          this.downloadResourcePartShowArray = range(tempArray[0], this.resourceEpisodesCount + 1)
+          this.noDownloadResourcePartShowArray = range(this.resourceEpisodesCount + 1, tempArray[1] + 1)
+        }
+        if (this.resourceEpisodesCount < tempArray[0]) {
+          this.downloadResourcePartShowArray = []
+          this.noDownloadResourcePartShowArray = range(tempArray[0], tempArray[1] + 1)
+        }
+      } else {
+        let temp = parseInt(e.target.innerHTML)
+        if (this.resourceEpisodesCount === temp) {
+          this.downloadResourcePartShowArray = [temp]
+          this.noDownloadResourcePartShowArray = []
+        } else {
+          this.downloadResourcePartShowArray = []
+          this.noDownloadResourcePartShowArray = [temp]
+        }
+      }
+    },
+    onDownloadItemPartClick (i) {
+      this.$modal.show(ItemDownloadModal, {separationDownloadData: this.collectionDownloadData},
+        {
+          name: 'downloadItemModal',
+          width: '1173px',
+          height: 'auto'
+        })
     }
   },
   computed: {
@@ -209,10 +324,13 @@ export default {
     },
     isCollectionActive () {
       return this.downloadActiveIndex === 0
+    },
+    isDownloadIndicatorShow () {
+      return this.episodesCount > 1
     }
   },
   mounted () {
-    this.partsIndicatorInit()
+    this.livePartsIndicatorInit()
     this.livePartShowArrayInit()
   }
 }
@@ -230,6 +348,8 @@ export default {
 
   .item-download
     margin-top 15px
+    .item-header-only-table
+      padding-bottom 0
 
   .item-header
     padding-bottom 10px
@@ -239,7 +359,7 @@ export default {
       height 28px
       line-height 28px
 
-  .item-live-parts-indicator
+  .item-parts-indicator
     display flex
     margin 0 0 18px 25px
     li
@@ -259,7 +379,7 @@ export default {
       &:hover
         color white
 
-  .item-live-parts
+  .item-parts
     display flex
     flex-wrap wrap
     margin-bottom -10px
@@ -270,7 +390,7 @@ export default {
       &:hover
         background #f5f5f5
 
-  .item-live-parts-wrap
+  .item-parts-wrap
     height 90px
 
   .item-part
@@ -335,6 +455,13 @@ export default {
     position relative
     padding 8px
 
+  .separation-area
+    padding 10px
+    .item-parts-indicator
+      margin 2px 0 10px 28px
+    .item-part
+      margin-right 9.5px
+
   .collection-area:after
     content ''
     position absolute
@@ -354,100 +481,5 @@ export default {
     border-right 10px solid transparent
     border-bottom 10px solid #eaeaea
     border-left 10px solid transparent
-
-  table
-    width 100%
-    background #333
-    color rgba(255, 255, 255, .9)
-    border-radius 2px
-    font-size 13px
-    text-align center
-    border-collapse collapse
-    border-spacing 0
-    tr
-      border 1px solid #484848
-      cursor default
-      th
-        padding 5px 10px
-        font-weight normal
-      td
-        padding 5px 10px
-        border-top 0 none
-        font-weight normal
-      &:hover
-        background-color: rgba(255, 255, 255, .05);
-    .iconfont
-      margin-right 5px
-
-  .header-row
-    height 30px
-    &:hover
-      background-color #333
-    .header-row-name
-      text-align left
-    .header-row-download
-      text-align right
-
-  .item-row
-    .item-row-name
-      text-align left
-    .item-row-links
-      display flex
-      justify-content flex-end
-      margin-right -5px
-      a
-        text-align center
-        margin-right 5px
-
-  .btn-download
-    display inline-block
-    width 90px
-    height 30px
-    line-height 30px
-    background #4eaade
-    color white
-    transition all .4s ease
-    cursor pointer
-    &:hover
-      opacity .8
-
-  .pop-main
-    padding 20px
-    border-radius 6px
-    .success-tip-box
-      background #E5F9E7
-      padding 20px
-      .success-tip
-        display flex
-        justify-content center
-        align-content center
-        color #2C662D
-        font-size 20px
-        .icon-right
-          font-size 22px
-          margin-right 5px
-          font-weight bold
-      .go-btn
-        display block
-        width 160px
-        height 40px
-        line-height 40px
-        margin 10px auto 0
-        text-align center
-        color #4eaade
-        box-shadow 0 0 0 2px #4eaade inset
-        transition all .4s ease
-        &:hover
-          background #4eaade
-          color white
-    .support
-      color #10A3A3
-      line-height 20px
-      margin-top 20px
-      font-size 14px
-      a
-        color #10A3A3
-        font-weight 500
-        text-decoration underline
 
 </style>

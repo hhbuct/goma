@@ -15,7 +15,7 @@ import './assets/styles/iconfont/iconfont.css'
 Vue.config.productionTip = false
 
 Vue.use(VueAwesomeSwiper)
-Vue.use(Vmodal)
+Vue.use(Vmodal, {dynamic: true, injectModalsContainer: true})
 
 /* eslint-disable no-new */
 new Vue({
